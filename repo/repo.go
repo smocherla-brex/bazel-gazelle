@@ -154,7 +154,10 @@ func ListRepositories(workspace *rule.File) (repos []*rule.Rule, repoFileMap map
 }
 
 func (l *loader) loadRepositoriesFromMacro(macro *RepoMacro) error {
-	f := filepath.Join(l.repoRoot, macro.Path)
+	f := macro.Path
+	if !filepath.IsAbs(f) {
+		f := filepath.Join(l.repoRoot, macro.Path)
+	}
 	if !l.visit(f, macro.DefName) {
 		return nil
 	}
