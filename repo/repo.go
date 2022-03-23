@@ -31,6 +31,7 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
 const gazelleFromDirectiveKey = "_gazelle_from_directive"
@@ -139,7 +140,7 @@ func ListRepositories(workspace *rule.File) (repos []*rule.Rule, repoFileMap map
 	for _, d := range workspace.Directives {
 		switch d.Key {
 		case "repository_macro":
-			parsed, err := ParseRepositoryMacroDirective(d.Value)
+			parsed, err := ParseRepositoryMacroDirective(l.repoRoot, d.Value)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -263,7 +264,7 @@ type RepoMacro struct {
 // ParseRepositoryMacroDirective checks the directive is in proper format, and splits
 // path and defName. Repository_macros prepended with a "+" (e.g. "# gazelle:repository_macro +file%def")
 // indicates a "leveled" macro, which loads other macro files.
-func ParseRepositoryMacroDirective(directive string) (*RepoMacro, error) {
+func ParseRepositoryMacroDirective(repoRoot string, directive string) (*RepoMacro, error) {
 	vals := strings.Split(directive, "%")
 	if len(vals) != 2 {
 		return nil, fmt.Errorf("Failure parsing repository_macro: %s, expected format is macroFile%%defName", directive)
@@ -271,6 +272,20 @@ func ParseRepositoryMacroDirective(directive string) (*RepoMacro, error) {
 	f := vals[0]
 	if strings.HasPrefix(f, "..") {
 		return nil, fmt.Errorf("Failure parsing repository_macro: %s, macro file path %s should not start with \"..\"", directive, f)
+	}
+
+	if strings.HasPrefix(f, "@") {
+		l, err := label.Parse(f)
+		if err != nil {
+			return nil, fmt.Errorf("Failure parsing macro label %s", f)
+		}
+
+		repo, err := FindExternalRepo(repoRoot, l.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to find external repo %s", l.Repo)
+		}
+
+		f = filepath.Join(repo, l.Pkg)
 	}
 	return &RepoMacro{
 		Path:    strings.TrimPrefix(f, "+"),
