@@ -141,7 +141,7 @@ func generateRepoConfig(configDest, configSource string) ([]string, error) {
 		// prepended to the macro file paths.
 		// TODO: https://github.com/bazelbuild/bazel-gazelle/issues/1068
 		f := m.Path
-		if !filepath.abs(f) {
+		if !filepath.IsAbs(f) {
 			f, err = filepath.Rel(filepath.Dir(configSource), m.Path)
 			if err != nil {
 				return nil, err
