@@ -140,8 +140,8 @@ func generateRepoConfig(configDest, configSource string) ([]string, error) {
 		// with the sourcefile as the workspace, so the source file location is always
 		// prepended to the macro file paths.
 		// TODO: https://github.com/bazelbuild/bazel-gazelle/issues/1068
-		f := configSource
-		if !filePath.abs(f) {
+		f := m.Path
+		if !filepath.abs(f) {
 			f, err = filepath.Rel(filepath.Dir(configSource), m.Path)
 			if err != nil {
 				return nil, err
